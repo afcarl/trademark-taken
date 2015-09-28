@@ -113,20 +113,22 @@ dictionary=PyDictionary()
 
 def generateSimilar(phrase):
 	words = phrase.split()
-	alltrademarks
 	if len(words) == 2:
 		word1 = words[0]
 		word2 = words[1]
 		words1 = [word1]
 		words2 = [word2]
-		for word in dictionary.synonym(word1):
+		for word in pdSynonyms(word1):
 			words1.append(word)
-		for word in dictionary.synonym(word2):
+
+		for word in pdSynonyms(word2):
 			words2.append(word)
+
+		words1 = list(set(words1))
+		words2 = list(set(words2))
 		for w1 in words1:
 			for w2 in words2:
-				print w1 + " " + w2 + ": ",
-				print(isTrademark(w1 + " " + w2))
+				print w1 + " " + w2 + ": "
 
 
 
