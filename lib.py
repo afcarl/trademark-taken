@@ -7,9 +7,28 @@ import urllib
 import requests
 from bs4 import BeautifulSoup
 from PyDictionary import PyDictionary
+from nltk.corpus import wordnet as wn
 
 
 
+def isTrademark(search_phrase):
+	# First need to get new state
+	mainurl = 'http://tmsearch.uspto.gov/bin/gate.exe?f=login&p_lang=english&p_d=trmk'
+	r = requests.get(mainurl)
+	search_state = r.url.split('state=')[1]
+
+
+
+	search_phrase = '"' + search_phrase + '"'
+	search_phrase = urllib.quote_plus(search_phrase)
+	url = "http://tmsearch.uspto.gov/bin/gate.exe?state=%(state)s&f=toc&a_search=Submit+Query&p_s_ALL=%(phrase)s&p_L=1000"
+	url =  url % {'phrase':search_phrase,'state':search_state}
+	r = requests.get(url)
+	while 'search session has expired' in r.text:
+		r = requests.get(url)
+	if "No TESS records were found to match the criteria of your query" in r.text:
+		return False
+	return True
 
 def getTrademarks(search_phrase):
 	# First need to get new state
@@ -24,11 +43,12 @@ def getTrademarks(search_phrase):
 	url = "http://tmsearch.uspto.gov/bin/gate.exe?state=%(state)s&f=toc&a_search=Submit+Query&p_s_ALL=%(phrase)s&p_L=1000"
 	url =  url % {'phrase':search_phrase,'state':search_state}
 	r = requests.get(url)
+	while 'search session has expired' in r.text:
+		r = requests.get(url)
 	if "No TESS records were found to match the criteria of your query" in r.text:
 		return []
 
-	while len(r.text) < 500:
-		r = requests.get(url)
+
 
 	soup = BeautifulSoup(r.text, 'html.parser')
 
@@ -88,19 +108,53 @@ def getTrademarks(search_phrase):
 
 
 
-print json.dumps(getTrademarks(sys.argv[1]),indent=4)
+#print json.dumps(getTrademarks(sys.argv[1]),indent=4)
+dictionary=PyDictionary()
 
 def generateSimilar(phrase):
-	dictionary=PyDictionary()
 	words = phrase.split()
-	newwords = {}
-	for i in range(len(words)):
-		if i not in newwords:
-			newwords[i] = []
-		for word in dictionary.synonym(words[i]):
-			newwords[i].append(word)
-	print newwords
+	alltrademarks
+	if len(words) == 2:
+		word1 = words[0]
+		word2 = words[1]
+		words1 = [word1]
+		words2 = [word2]
+		for word in dictionary.synonym(word1):
+			words1.append(word)
+		for word in dictionary.synonym(word2):
+			words2.append(word)
+		for w1 in words1:
+			for w2 in words2:
+				print w1 + " " + w2 + ": ",
+				print(isTrademark(w1 + " " + w2))
 
 
 
-generateSimilar(sys.argv[1])
+
+'''
+t = []
+t = t + getTrademarks('dog wash')
+t = t + getTrademarks('dog clean')
+t = t + getTrademarks('canine clean')
+
+names = []
+for k in t:
+	if len(k['Word Mark'])>1:
+		names.append(k['Word Mark'])
+'''
+
+def pdSynonyms(word):
+	syns = []
+	for word in dictionary.synonym(word):
+		syns.append(word)
+	return list(set(syns))
+
+def wnSynonyms(word):
+	syns = []
+	syn_sets = wn.synsets(word)
+	for syn_set in syn_sets:
+		for w in syn_set.lemma_names():
+			syns.append(w)
+
+	return list(set(syns))
+
